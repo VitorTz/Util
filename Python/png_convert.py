@@ -1,51 +1,35 @@
+#!/usr/bin/python3
 from pathlib import Path
 from PIL import Image
+from multiprocessing.pool import ThreadPool
 import sys
+import os
 
 
-VALID_IMAGES = (
-    ".jpg",
-    ".jpeg",
-    ".webp",
-    ".png"
-)
+def _conver_to_png(path: Path) -> None:
+    print(f"[CONVERTING {path}]")
+    Image.open(path).convert("RGBA").save(path.with_suffix(".png"))
+    os.remove(str(path))
 
-
-def convert_file(file: Path) -> None:
-    if (
-        file.exists() is False or
-        file.suffix not in VALID_IMAGES
-    ):
-        return
-    img = Image.open(file)
-    img = img.convert("RGBA")
-    img.save(file.with_suffix(".png"))
-    print(f"[IMAGE {file} CONVERTED]")
-
-
-def convert_dir(dir: Path) -> None:
-    dir_list = [dir]
-    while (dir_list):
-        root = dir_list.pop()
-        for i in root.iterdir():
-            if (i.is_file()):
-                convert_file(i)
-            elif (i.is_dir()):
-                dir_list.append(i)
-
+def convert(src: Path) -> None:
+    files: list[Path] = []
+    q: list[Path] = [src]
+    while q:
+        path = q.pop(0)
+        if path.is_file() and path.suffix in (".jpg", ".jpeg", ".webp"):
+            files.append(path)
+        elif path.is_dir():
+            [q.append(p) for p in path.iterdir()]
+    
+    with ThreadPool(4) as pool:
+        pool.map(_conver_to_png, files)
+    pool.join()
 
 def main() -> None:
     src = Path(sys.argv[1])
-    
-    if (src.exists() is False):
-        print(f"{src} is not a valid source")
-        exit()
-
-    if (src.is_file()):
-        convert_file(src)
-    elif (src.is_dir()):
-        convert_dir(src)
-    
+    if src.exists() is False:
+        print(f"Invalid input! {src}")
+    convert(src)
 
 
 if __name__ == "__main__":
