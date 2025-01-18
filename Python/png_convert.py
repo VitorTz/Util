@@ -11,6 +11,7 @@ def _conver_to_png(path: Path) -> None:
     Image.open(path).convert("RGBA").save(path.with_suffix(".png"))
     os.remove(str(path))
 
+
 def convert(src: Path) -> None:
     files: list[Path] = []
     q: list[Path] = [src]
@@ -24,6 +25,7 @@ def convert(src: Path) -> None:
     with ThreadPool(4) as pool:
         pool.map(_conver_to_png, files)
     pool.join()
+
 
 def main() -> None:
     src = Path(sys.argv[1])
